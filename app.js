@@ -36,11 +36,17 @@ const clockGrid = document.getElementById("clockGrid");
 const logBody = document.querySelector("#logTable tbody");
 const summaryGrid = document.getElementById("summaryTable");
 const monthSelect = document.getElementById("monthSelect");
+const addEntryBtn = document.getElementById("addEntryBtn");
+let showDraft = false;
 
 // Default month picker to current month
 const now = new Date();
 monthSelect.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 monthSelect.addEventListener("change", renderSummary);
+addEntryBtn.addEventListener("click", () => {
+  showDraft = true;
+  renderLog();
+});
 
 // ---- Build employee clock cards ----
 function buildClockGrid() {
@@ -126,8 +132,15 @@ function hoursBetween(inD, outD) {
 // ---- Render log table ----
 function renderLog() {
   logBody.innerHTML = "";
+
+  if (showDraft) {
+    logBody.appendChild(buildDraftRow());
+  }
+
   if (entries.length === 0) {
-    logBody.innerHTML = `<tr><td colspan="6" class="empty-note">No entries yet</td></tr>`;
+    if (!showDraft) {
+      logBody.innerHTML = `<tr><td colspan="6" class="empty-note">No entries yet</td></tr>`;
+    }
     return;
   }
   entries.forEach((e) => {
@@ -152,6 +165,62 @@ function renderLog() {
 
     logBody.appendChild(tr);
   });
+}
+
+function buildDraftRow() {
+  const tr = document.createElement("tr");
+  tr.className = "draft-row";
+  const todayStr = toDateInputValue(new Date());
+
+  const empOptions = EMPLOYEES.map((n) => `<option value="${n}">${n}</option>`).join("");
+
+  tr.innerHTML = `
+    <td><select data-field="employee">${empOptions}</select></td>
+    <td><input type="date" value="${todayStr}" data-field="date"></td>
+    <td><input type="time" data-field="in"></td>
+    <td><input type="time" data-field="out"></td>
+    <td>—</td>
+    <td class="draft-actions">
+      <button class="save-btn" data-save>Save</button>
+      <button class="cancel-btn" data-cancel>✕</button>
+    </td>
+  `;
+
+  tr.querySelector("[data-cancel]").addEventListener("click", () => {
+    showDraft = false;
+    renderLog();
+  });
+
+  tr.querySelector("[data-save]").addEventListener("click", () => handleAddEntry(tr));
+
+  return tr;
+}
+
+async function handleAddEntry(row) {
+  const employee = row.querySelector('[data-field="employee"]').value;
+  const dateVal = row.querySelector('[data-field="date"]').value;
+  const inVal = row.querySelector('[data-field="in"]').value;
+  const outVal = row.querySelector('[data-field="out"]').value;
+
+  if (!dateVal || !inVal) {
+    alert("Date and clock-in time are required.");
+    return;
+  }
+
+  const [y, m, d] = dateVal.split("-").map(Number);
+  const [ih, im] = inVal.split(":").map(Number);
+  const clockIn = Timestamp.fromDate(new Date(y, m - 1, d, ih, im));
+
+  let clockOut = null;
+  if (outVal) {
+    const [oh, om] = outVal.split(":").map(Number);
+    clockOut = Timestamp.fromDate(new Date(y, m - 1, d, oh, om));
+  }
+
+  await addDoc(entriesRef, { employee, clockIn, clockOut });
+
+  showDraft = false;
+  renderLog();
 }
 
 async function handleEdit(entry, row) {

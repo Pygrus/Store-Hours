@@ -202,6 +202,46 @@ header {
   gap: 10px;
 }
 
+.add-btn {
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--brass-dim);
+  background: transparent;
+  color: var(--brass);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.add-btn:hover { background: rgba(226, 166, 75, 0.08); }
+
+tr.draft-row td { background: rgba(226, 166, 75, 0.06); }
+
+td select {
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 5px 6px;
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  width: 100%;
+  background: var(--surface);
+  color: var(--paper);
+}
+
+.draft-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.draft-actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.draft-actions .save-btn { background: var(--brass); color: var(--ink); }
+.draft-actions .cancel-btn { background: transparent; color: var(--muted-dim); }
+
 h2 {
   font-size: 0.95rem;
   font-weight: 600;
