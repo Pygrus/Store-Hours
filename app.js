@@ -44,8 +44,17 @@ const now = new Date();
 monthSelect.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 monthSelect.addEventListener("change", renderSummary);
 addEntryBtn.addEventListener("click", () => {
-  showDraft = true;
-  renderLog();
+  try {
+    showDraft = true;
+    renderLog();
+  } catch (err) {
+    alert("Add entry error: " + err.message);
+    console.error(err);
+  }
+});
+
+window.addEventListener("error", (e) => {
+  alert("Script error: " + e.message);
 });
 
 // ---- Build employee clock cards ----
