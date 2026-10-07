@@ -35,14 +35,49 @@ let entries = []; // all entries, live from Firestore
 const clockGrid = document.getElementById("clockGrid");
 const logBody = document.querySelector("#logTable tbody");
 const summaryGrid = document.getElementById("summaryTable");
-const monthSelect = document.getElementById("monthSelect");
+const periodSelect = document.getElementById("periodSelect");
 const addEntryBtn = document.getElementById("addEntryBtn");
 let showDraft = false;
 
-// Default month picker to current month
-const now = new Date();
-monthSelect.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-monthSelect.addEventListener("change", renderSummary);
+// ---- Pay periods ----
+// Each period runs from the 15th at 12:00 AM up to (not including) the next 15th at 12:00 AM.
+// A shift counts toward the period its clock-in falls in.
+const PERIOD_START_DAY = 15;
+const PERIODS_TO_SHOW = 12;
+
+function periodStartFor(d) {
+  const y = d.getFullYear();
+  const m = d.getMonth();
+  return d.getDate() >= PERIOD_START_DAY
+    ? new Date(y, m, PERIOD_START_DAY)
+    : new Date(y, m - 1, PERIOD_START_DAY);
+}
+
+function periodEndFor(start) {
+  return new Date(start.getFullYear(), start.getMonth() + 1, PERIOD_START_DAY);
+}
+
+function formatPeriodLabel(start) {
+  // End date shown is the last full day of the period (the day before the next 15th)
+  const lastDay = new Date(periodEndFor(start).getTime() - 24 * 60 * 60 * 1000);
+  const fmt = { month: "short", day: "numeric" };
+  return `${start.toLocaleDateString([], fmt)} to ${lastDay.toLocaleDateString([], fmt)}, ${lastDay.getFullYear()}`;
+}
+
+function buildPeriodOptions() {
+  const currentStart = periodStartFor(new Date());
+  periodSelect.innerHTML = "";
+  for (let i = 0; i < PERIODS_TO_SHOW; i++) {
+    const start = new Date(currentStart.getFullYear(), currentStart.getMonth() - i, PERIOD_START_DAY);
+    const opt = document.createElement("option");
+    opt.value = String(start.getTime());
+    opt.textContent = formatPeriodLabel(start) + (i === 0 ? " (current)" : "");
+    periodSelect.appendChild(opt);
+  }
+}
+
+buildPeriodOptions();
+periodSelect.addEventListener("change", renderSummary);
 addEntryBtn.addEventListener("click", () => {
   try {
     showDraft = true;
@@ -260,16 +295,17 @@ async function handleDelete(id) {
   await deleteDoc(doc(db, "entries", id));
 }
 
-// ---- Monthly summary ----
+// ---- Pay period summary ----
 function renderSummary() {
-  const [y, m] = monthSelect.value.split("-").map(Number);
+  const periodStart = new Date(Number(periodSelect.value));
+  const periodEnd = periodEndFor(periodStart);
   const totals = {};
   EMPLOYEES.forEach((name) => (totals[name] = 0));
 
   entries.forEach((e) => {
     if (!e.clockIn || !e.clockOut) return;
     const inD = e.clockIn.toDate();
-    if (inD.getFullYear() === y && inD.getMonth() + 1 === m) {
+    if (inD >= periodStart && inD < periodEnd) {
       const hrs = hoursBetween(inD, e.clockOut.toDate());
       if (hrs) totals[e.employee] = (totals[e.employee] || 0) + hrs;
     }

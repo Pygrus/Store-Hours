@@ -251,7 +251,7 @@ h2 {
 
 .section-head h2 { margin: 0; }
 
-#monthSelect {
+#periodSelect {
   font-family: var(--mono);
   font-size: 0.82rem;
   padding: 6px 10px;
